@@ -1,7 +1,7 @@
 {
   "name": "dsh-git-toolkit",
   "version": "0.1.0",
-  "description": "Git branch toolkit for the DeepSeek Harness Web UI: pick the branch a new session starts on, and see the current branch of an ongoing conversation.",
+  "description": "DeepSeek Harness Web UI 的 Git 分支工具：新建会话时选择要使用的分支，并在已开始的对话中显示当前分支。",
   "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
