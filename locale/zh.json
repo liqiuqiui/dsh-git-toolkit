@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Git Toolkit",
+    "description": "为新建会话选择工作区的 git 分支，并在已开始的对话里显示当前分支。"
+  }
+}

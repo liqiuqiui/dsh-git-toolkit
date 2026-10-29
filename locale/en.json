@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Git Toolkit",
+    "description": "Pick the git branch a new session starts on, and see the current branch of an ongoing conversation."
+  }
+}

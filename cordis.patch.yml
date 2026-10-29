@@ -1,0 +1,6 @@
+# git-toolkit bundle patch：用一行同时挂载两半——Host 侧（会话作用域的
+# git 分支路由）与浏览器侧（New Session 行内的分支切换器，由本包的
+# client.js 提供）。
+- insert:
+    - id: git-toolkit
+      name: git-toolkit

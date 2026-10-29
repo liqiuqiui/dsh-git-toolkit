@@ -1,0 +1,64 @@
+{
+  "name": "git-toolkit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Git branch toolkit for the DeepSeek Harness Web UI: pick the branch a new session starts on, and see the current branch of an ongoing conversation.",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/index.d.ts",
+    "lib/index.js.map",
+    "lib/shared.js",
+    "lib/shared.d.ts",
+    "lib/shared.js.map",
+    "lib/host-api.js",
+    "lib/host-api.d.ts",
+    "lib/host-api.js.map",
+    "lib/client.js",
+    "lib/client.js.map",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
+    "build": "pnpm run clean && pnpm run build:host && pnpm run build:client",
+    "build:host": "tsc -p tsconfig.build.json",
+    "build:client": "tsdown",
+    "watch:client": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "tsdown": "^0.23.3",
+    "typescript": "^7.0.2"
+  }
+}
