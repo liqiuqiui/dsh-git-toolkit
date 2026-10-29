@@ -1,5 +1,5 @@
 /**
- * git-toolkit · 浏览器侧。
+ * dsh-git-toolkit · 浏览器侧。
  *
  * 导出 Loader 挂载的插件对象：命名空间/locale id、它所需的 services，以及
  * `apply`——后者注册 locale 字典和两个槽位占用者：`conversation.hero.options`
@@ -87,7 +87,7 @@ const DICTS: LocaleDictionaries = { zh: ZH, en: EN }
  * @param ctx - 带有 `slots` 和 `locale` services 的浏览器上下文。
  */
 export function apply(ctx: ClientPluginContext): void {
-  ctx.effect(() => ctx.locale.register(PLUGIN_ID, DICTS), 'git-toolkit: locale')
+  ctx.effect(() => ctx.locale.register(PLUGIN_ID, DICTS), 'dsh-git-toolkit: locale')
 
   ctx.slots.inject('conversation.hero.options', () =>
     ctx.slots.register(

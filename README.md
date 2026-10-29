@@ -40,16 +40,31 @@ DeepSeek Harness（dsh）插件：在会话界面里查看和切换工作区所�
 
 ## 安装
 
-在 dsh profile 的 `package.json` 中加入依赖，并在 `dsh.profile.bundles` 里登记插件名：
+从 npm 安装（推荐）：在插件管理器里安装 `dsh-git-toolkit`，或在 dsh profile 的 `package.json` 中加入依赖，并在 `dsh.profile.bundles` 里登记包名：
 
 ```json
 {
   "dependencies": {
-    "git-toolkit": "link:/path/to/git-toolkit"
+    "dsh-git-toolkit": "0.1.0"
   },
   "dsh": {
     "profile": {
-      "bundles": ["...", "git-toolkit"]
+      "bundles": ["...", "dsh-git-toolkit"]
+    }
+  }
+}
+```
+
+本地开发改用本地目录（dsh 会直接链接工作副本，不需要每次重装）：
+
+```json
+{
+  "dependencies": {
+    "dsh-git-toolkit": "link:/path/to/dsh-git-toolkit"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": ["...", "dsh-git-toolkit"]
     }
   }
 }
@@ -57,6 +72,23 @@ DeepSeek Harness（dsh）插件：在会话界面里查看和切换工作区所�
 
 装好后重启 dsh。
 
-> 仓库中的 `lib/` 是构建产物（不纳入版本管理）。若更新了源码，需在仓库里执行 `pnpm install && pnpm build` 重新生成；之后刷新页面即可看到客户端改动，Host 侧改动需完全退出并重开 dsh。
+> **不要用 `github:` 直接安装本仓库。** dsh 安装 bundle 时只复制包内文件，不会执行构建；`lib/` 不纳入版本管理，所以 GitHub 源码包里没有 `lib/index.js`，启用时会报 `ERR_MODULE_NOT_FOUND`。请走 npm 安装或本地目录安装。
+>
+> 仓库中的 `lib/` 是构建产物（不纳入版本管理）。更新源码后需在仓库里执行 `pnpm install && pnpm build`；之后刷新页面即可看到客户端改动，Host 侧改动需完全退出并重开 dsh。
 >
 > 开发时可用 `pnpm watch:client` 监听客户端源码并自动重新打包。
+
+## 发布到 npm
+
+`package.json` 里已配置 `prepack`，发布前会自动执行构建（`clean` → `tsc` → `tsdown`），所以 npm 包里始终带最新构建产物：
+
+```bash
+npm login          # 首次发布
+npm publish        # prepack 构建并打包含 lib/ 的 tarball
+```
+
+发布后可用 `npm view dsh-git-toolkit version` 确认，并在插件管理器里安装。
+
+## License
+
+MIT，见 [LICENSE](LICENSE)。

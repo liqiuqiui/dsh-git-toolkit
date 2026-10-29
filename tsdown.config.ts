@@ -10,7 +10,7 @@
 import type { UserConfig } from 'tsdown'
 
 /** 写入 `__ModuleLoader__.load` 的插件 id，必须与 package.json 的 name 一致。 */
-const PLUGIN_ID = 'git-toolkit'
+const PLUGIN_ID = 'dsh-git-toolkit'
 
 /**
  * 生成到产物顶部的文件头。

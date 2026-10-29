@@ -56,7 +56,7 @@ const INDENT = 14
 
 /** Host 传给 `shell.overlay` 占用者的 props。 */
 export interface BranchMenuProps {
-  /** 绑定命名空间的翻译函数（`git-toolkit`）。 */
+  /** 绑定命名空间的翻译函数（`dsh-git-toolkit`）。 */
   t: (key: string) => string
 }
 

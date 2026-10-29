@@ -24,7 +24,7 @@ const { useEffect, useState } = React
 export interface BranchBadgeProps {
   /** composer 所属的会话。 */
   sessionId: string
-  /** 绑定命名空间的翻译函数（`git-toolkit`）。 */
+  /** 绑定命名空间的翻译函数（`dsh-git-toolkit`）。 */
   t: (key: string) => string
 }
 

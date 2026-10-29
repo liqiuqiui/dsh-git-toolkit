@@ -1,12 +1,12 @@
 /**
- * git-toolkit 两半共用的类型与常量。
+ * dsh-git-toolkit 两半共用的类型与常量。
  *
  * 本模块会被编译进 Host bundle，也会被打包进浏览器产物，因此必须保持零依赖：
  * 不得有 `node:` 导入，不得依赖 Harness 各包，只能包含类型声明与普通常量。
  */
 
 /** 插件 id：Loader 行 id、浏览器工厂 id，以及 locale 命名空间。 */
-export const PLUGIN_ID = 'git-toolkit'
+export const PLUGIN_ID = 'dsh-git-toolkit'
 
 /** Host 侧面向浏览器的 API base。 */
 export const API_BASE = '/api/git-toolkit'

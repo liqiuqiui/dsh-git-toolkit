@@ -1,5 +1,5 @@
 /**
- * git-toolkit · Host 侧。
+ * dsh-git-toolkit · Host 侧。
  *
  * 浏览器侧在 New Session 行内渲染分支切换器（`conversation.hero.options`
  * 槽位，紧邻 agent-preset 控件右侧），并调用下面三个 JSON 端点。与 git 相关
@@ -461,7 +461,7 @@ export function buildRoutes(ctx: HostContext): WebRoute[] {
 /** 向 Host web server 注册全部路由，并随插件一起释放。 */
 export function apply(ctx: HostContext): void {
   for (const route of buildRoutes(ctx)) {
-    ctx.effect(() => ctx.webServer.register(route), `git-toolkit: route ${route.path}`)
+    ctx.effect(() => ctx.webServer.register(route), `dsh-git-toolkit: route ${route.path}`)
   }
 }
 

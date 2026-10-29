@@ -20,7 +20,7 @@ const { useEffect, useRef, useState } = React
 export interface BranchSeatProps {
   /** Hero 行所属的会话。 */
   sessionId: string
-  /** 绑定命名空间的翻译函数（`git-toolkit`）。 */
+  /** 绑定命名空间的翻译函数（`dsh-git-toolkit`）。 */
   t: (key: string) => string
 }
 
@@ -54,7 +54,7 @@ export function BranchSeat({ sessionId, t }: BranchSeatProps): ReactElement | nu
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return
-        console.error('[git-toolkit] status failed:', formatError(error, 'request failed'))
+        console.error('[dsh-git-toolkit] status failed:', formatError(error, 'request failed'))
         setPhase('hidden')
       })
     return () => {

@@ -1,8 +1,8 @@
 {
-  "name": "git-toolkit",
+  "name": "dsh-git-toolkit",
   "version": "0.1.0",
-  "private": true,
   "description": "Git branch toolkit for the DeepSeek Harness Web UI: pick the branch a new session starts on, and see the current branch of an ongoing conversation.",
+  "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -32,6 +32,18 @@
     "icon.svg",
     "README.md"
   ],
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "git",
+    "branch"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liqiuqiui/dsh-git-toolkit.git"
+  },
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
     "build": "pnpm run clean && pnpm run build:host && pnpm run build:client",
@@ -39,7 +51,8 @@
     "build:client": "tsdown",
     "watch:client": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "pnpm run build && node --test"
+    "test": "pnpm run build && node --test",
+    "prepack": "npm run clean && npm run build:host && npm run build:client"
   },
   "dsh": {
     "bundle": {
