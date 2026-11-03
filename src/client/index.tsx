@@ -1,129 +1,116 @@
 /**
- * dsh-git-toolkit · 浏览器侧。
+ * dsh-toolkit · 浏览器侧入口。
  *
- * 导出 Loader 挂载的插件对象：命名空间/locale id、它所需的 services，以及
- * `apply`——后者注册 locale 字典和两个槽位占用者：`conversation.hero.options`
- * 上的 pill 和 `shell.overlay` 上的面板。
+ * 这个文件只做「装配」，不含任何功能实现：
+ *
+ *   1. 注册工具包自身的文案（`locale.ts`，命名空间 = 插件 id）；
+ *   2. 可选地接上 Host 设置文档，得到开关读数与详情页开关区块
+ *      （`settings.ts`：设置服务不存在时这段整体不运行，各功能按默认值工作）；
+ *   3. 遍历 `features/registry.ts`，把每个功能交给它自己的 `register` 去占槽位，
+ *      并顺带注册该功能自己的文案命名空间（`<插件 id>/<功能 id>`）。
  *
  * `tsdown.config.ts` 把该模块打包成 CommonJS，并包装为
  * `window.__ModuleLoader__.load({ id, factory })`；此处不直接与 loader 交互，
- * 不 import 任何 `@deepseek-ai/*` 包，模块作用域内也没有 DOM 副作用（样式是由
- * 组件持有的 `<style>` 元素）。
+ * 不 import 任何 `@deepseek-ai/*` 包，模块作用域内也没有 DOM 副作用。
  */
+import { isolateFeature } from '../diagnostics.js'
 import { PLUGIN_ID } from '../shared.js'
-import { BranchBadge } from './BranchBadge.js'
-import { BranchMenu } from './BranchMenu.js'
-import { BranchSeat } from './BranchSeat.js'
-import type { ClientPluginContext, LocaleDictionaries, MessageDict } from './host-api.js'
+import {
+  clientFeatureContext,
+  type ClientFeatureEntry,
+  type FeatureRegistrationOptions,
+} from './feature.js'
+import { CLIENT_FEATURES } from './features/registry.js'
+import type { ClientPluginContext } from './host-api.js'
+import { TOOLKIT_DICTS } from './locale.js'
+import { installToggles } from './settings.js'
+import { toggleStore } from './toggles.js'
 
-/** 插件 id：loader 行 id、浏览器 factory id，以及 locale 命名空间。 */
+/** 插件 id：loader 行 id、浏览器 factory id，以及 locale 根命名空间。 */
 export const name: string = PLUGIN_ID
 
-/** 该侧需要的 Host services：slot 注册表和 locale 注册表。 */
+/**
+ * 该侧强依赖的 Host services：slot 注册表和 locale 注册表。
+ *
+ * `configForms` **不**在这里：设置页只是功能开关的一个可选宿主，缺少它的部署
+ * 也应当能跑各功能本身（见 `settings.ts` 的可选注入）。
+ */
 export const inject: readonly string[] = ['slots', 'locale']
 
 /**
- * 可见文案。`zh` 是参考表；`en` 必须覆盖完全相同的键，因此缺失的翻译会在
- * type-check 阶段失败，而不是被发布出去。`upstreamGone` 是显示在已删除分支的
- * 上游分支之后的短后缀（该行会用省略号截断，因此后缀保持紧凑）；
- * `expandFolder`/`collapseFolder`/`branchFolder` 组合成目录行的无障碍名称。
+ * 一个功能的开关读取函数。
+ * @param entry - 功能的注册表项。
+ * @returns 该功能此刻是否开启；设置尚未到达时用共享默认值兜底。
  */
-const ZH = {
-  switchBranch: '切换 Git 分支',
-  searchPlaceholder: '搜索分支',
-  branchesLabel: '分支',
-  noMatch: '未找到匹配的分支',
-  loading: '加载中…',
-  createNew: '创建并检出新分支...',
-  createTitle: '新建分支',
-  newBranchName: '新分支名称',
-  cancel: '取消',
-  createAndCheckout: '创建并检出',
-  creating: '正在创建…',
-  switching: '正在切换…',
-  emptyName: '请输入分支名称',
-  requestFailed: '请求失败',
-  upstreamGone: '已删除',
-  expandFolder: '展开',
-  collapseFolder: '折叠',
-  branchFolder: '分支文件夹',
-  currentBranch: '当前分支',
-  detachedHead: '游离 HEAD',
-} as const satisfies MessageDict
-
-/** UI 可能请求的全部翻译键。 */
-type MessageKey = keyof typeof ZH
-
-/** 英文表：穷尽覆盖 `MessageKey` 正是 `satisfies` 所检查的内容。 */
-const EN: Readonly<Record<MessageKey, string>> = {
-  switchBranch: 'Switch Git branch',
-  searchPlaceholder: 'Search branches',
-  branchesLabel: 'Branches',
-  noMatch: 'No matching branches',
-  loading: 'Loading…',
-  createNew: 'Create and check out a new branch...',
-  createTitle: 'New branch',
-  newBranchName: 'New branch name',
-  cancel: 'Cancel',
-  createAndCheckout: 'Create and check out',
-  creating: 'Creating…',
-  switching: 'Switching…',
-  emptyName: 'Please enter a branch name',
-  requestFailed: 'Request failed',
-  upstreamGone: 'deleted',
-  expandFolder: 'Expand',
-  collapseFolder: 'Collapse',
-  branchFolder: 'Branch folder',
-  currentBranch: 'Current branch',
-  detachedHead: 'detached HEAD',
+function isEnabled(entry: ClientFeatureEntry): boolean {
+  return toggleStore().isEnabled(entry.configKey)
 }
 
-/** 两个字典，以 {@link PLUGIN_ID} 为键交给 locale service。 */
-const DICTS: LocaleDictionaries = { zh: ZH, en: EN }
+/**
+ * 装配一个功能，并把它自己的文案命名空间一起注册。
+ *
+ * 文案与 UI 放在同一段里：任一步失败，这个功能就整体缺席，而不是留下一半的界面
+ * 配着取不到文案的 `t()`。
+ * @param ctx - 浏览器上下文。
+ * @param entry - 功能的注册表项。
+ * @param options - 插件 id、locale 服务与开关读取。
+ */
+function applyFeature(
+  ctx: ClientPluginContext,
+  entry: ClientFeatureEntry,
+  options: FeatureRegistrationOptions,
+): void {
+  const feature = clientFeatureContext(ctx, entry, options)
+  ctx.effect(
+    () => ctx.locale.register(feature.namespace, entry.feature.locale),
+    `dsh-toolkit: locale ${feature.namespace}`,
+  )
+  entry.feature.register(feature)
+}
 
 /**
- * 注册 locale 字典和两个槽位占用者。
- * 每次注册都是一个可销毁的 effect，因此禁用插件会移除 pill、面板及其样式元素。
- * @param ctx - 带有 `slots` 和 `locale` services 的浏览器上下文。
+ * 逐个装配功能，每个都在故障隔离中运行。
+ *
+ * 抽成独立函数，是为了让「一个功能抛错不影响其他功能」可被测试直接驱动。
+ * @param ctx - 浏览器上下文。
+ * @param entries - 要装配的功能；默认为注册表里的全部功能。
+ * @param options - 插件 id、locale 服务与开关读取。
+ */
+export function applyClientFeatures(
+  ctx: ClientPluginContext,
+  entries: readonly ClientFeatureEntry[] = CLIENT_FEATURES,
+  options: FeatureRegistrationOptions = { pluginId: PLUGIN_ID, locale: ctx.locale, isEnabled },
+): void {
+  for (const entry of entries) {
+    isolateFeature('client', entry.id, () => {
+      applyFeature(ctx, entry, options)
+    })
+  }
+}
+
+/**
+ * 装配浏览器侧。
+ * @param ctx - 带有 `slots` 与 `locale` services 的浏览器上下文。
  */
 export function apply(ctx: ClientPluginContext): void {
-  ctx.effect(() => ctx.locale.register(PLUGIN_ID, DICTS), 'dsh-git-toolkit: locale')
+  isolateFeature('client', 'locale', () => {
+    ctx.effect(() => ctx.locale.register(PLUGIN_ID, TOOLKIT_DICTS), 'dsh-toolkit: locale')
+  })
 
-  ctx.slots.inject('conversation.hero.options', () =>
-    ctx.slots.register(
-      {
-        name: 'conversation.hero.options',
-        id: 'git-toolkit-branch',
-        order: 10,
-        locale: PLUGIN_ID,
-      },
-      BranchSeat,
-    ),
-  )
+  // 详情页开关：只有在设置服务存在时才装配。`ctx.inject` 的回调拿到的是带
+  // `configForms` 的子上下文，因此这里不需要把它写进 `inject`（写进去会变成
+  // 硬依赖，缺设置服务的部署里整个插件的 UI 都不会出现）。
+  isolateFeature('client', 'toggles', () => {
+    const injectService = ctx.inject
+    if (typeof injectService !== 'function') return
+    injectService.call(ctx, ['configForms'], (scope) => {
+      // `inject` 的回调可能在服务就绪时才触发（那时 `apply` 早已返回），所以这里
+      // 再包一层隔离：开关页装配失败不该连累各功能本身。
+      isolateFeature('client', 'toggles', () => {
+        installToggles(ctx, scope as ClientPluginContext, PLUGIN_ID)
+      })
+    })
+  })
 
-  ctx.slots.inject('shell.overlay', () =>
-    ctx.slots.register(
-      {
-        name: 'shell.overlay',
-        id: 'git-toolkit-branch-popover',
-        order: 1000,
-        locale: PLUGIN_ID,
-      },
-      BranchMenu,
-    ),
-  )
-
-  // 进行中对话的 composer 工具行。上方的 Hero 行只在会话开始前存在，因此这里
-  // 是进行中的对话可以报告其工作区所在分支的位置。
-  ctx.slots.inject('conversation.input.left', () =>
-    ctx.slots.register(
-      {
-        name: 'conversation.input.left',
-        id: 'git-toolkit-branch-badge',
-        order: 10,
-        locale: PLUGIN_ID,
-      },
-      BranchBadge,
-    ),
-  )
+  applyClientFeatures(ctx)
 }

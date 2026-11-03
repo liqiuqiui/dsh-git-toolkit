@@ -10,7 +10,7 @@
 import type { UserConfig } from 'tsdown'
 
 /** 写入 `__ModuleLoader__.load` 的插件 id，必须与 package.json 的 name 一致。 */
-const PLUGIN_ID = 'dsh-git-toolkit'
+const PLUGIN_ID = 'dsh-toolkit'
 
 /**
  * 生成到产物顶部的文件头。
@@ -31,8 +31,9 @@ export default {
   sourcemap: true,
   // 清理交给 `pnpm clean`，避免本工具清空 lib/ 时连 Host 侧产物一起删掉。
   clean: false,
-  // loader 会提供 React；把它打进来会产生第二个实例。
-  deps: { neverBundle: ['react'] },
+  // loader 会提供 React；把它打进来会产生第二个实例。`@deepseek-ai/schemastery`
+  // 只被 Host 侧使用，这里显式声明不打包，避免将来某次 import 把它带进浏览器产物。
+  deps: { neverBundle: ['react', '@deepseek-ai/schemastery'] },
   define: { 'process.env.NODE_ENV': '"production"' },
   outputOptions: {
     entryFileNames: 'client.js',

@@ -5,20 +5,19 @@
  * 本身挂在子路径下时插件仍能工作。响应通过共享的信封守卫收窄，
  * 每个端点都返回刷新后的仓库快照，调用方无需第二次往返即可存储。
  */
+import { asApiFailure, asApiSuccess } from '../../../shared.js'
 import {
-  API_BASE,
-  asApiFailure,
-  asApiSuccess,
+  GIT_API,
   type BranchEntry,
   type CreateRequest,
   type RepoStatus,
   type RepoStatusPresent,
   type StatusRequest,
   type SwitchRequest,
-} from '../shared.js'
+} from '../../../features/git-branch/shared.js'
 
 /** 去掉前导斜杠的路由前缀：`new URL` 随后按相对路径解析它。 */
-const API_PATH = API_BASE.replace(/^\/+/, '')
+const API_PATH = GIT_API.replace(/^\/+/, '')
 
 /** 一个端点名。 */
 type ApiAction = 'status' | 'switch' | 'create'

@@ -12,7 +12,7 @@
  * 其第一个分支的位置，其子节点重复同一规则，因此任何层级都不会
  * 按字母重新排序。
  */
-import type { BranchEntry } from '../shared.js'
+import type { BranchEntry } from '../../../features/git-branch/shared.js'
 
 /** 树中的一个分支叶子节点。 */
 export interface BranchLeaf {

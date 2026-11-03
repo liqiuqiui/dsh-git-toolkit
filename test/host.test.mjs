@@ -1,6 +1,9 @@
 /**
  * Host 侧测试：git 操作与 JSON 路由信封，均针对真实临时仓库执行
  * （不启动 Harness，不启动浏览器）。
+ *
+ * 路由表经由 `buildRoutes(ctx, isEnabled)` 取得，因此这里也能覆盖「功能被关闭
+ * 时端点统一 404」的行为，而不必真的去改设置。
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
@@ -32,7 +35,7 @@ function git(cwd, args) {
 
 /** 位于 `main` 分支、含一个提交的临时仓库。 */
 async function makeRepo(t) {
-  const dir = await mkdtemp(join(tmpdir(), 'git-toolkit-'))
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-toolkit-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   git(dir, ['init', '-b', 'main'])
   execFileSync('git', [...IDENTITY, 'commit', '--allow-empty', '-m', 'init'], { cwd: dir })
@@ -41,7 +44,7 @@ async function makeRepo(t) {
 
 /** 一个不是仓库的临时目录。 */
 async function makePlainDir(t) {
-  const dir = await mkdtemp(join(tmpdir(), 'git-toolkit-plain-'))
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-toolkit-plain-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   return dir
 }
@@ -79,8 +82,8 @@ async function callRoute(route, body, method = 'POST') {
 }
 
 /** 从导出的路由表中取出名为 `action` 的路由。 */
-function routeOf(ctx, action) {
-  return buildRoutes(ctx).find((route) => route.path === `${API}/${action}`)
+function routeOf(ctx, action, isEnabled = () => true) {
+  return buildRoutes(ctx, isEnabled).find((route) => route.path === `${API}/${action}`)
 }
 
 test('readRepoStatus reports a non-repository as isRepo:false', async (t) => {
@@ -184,10 +187,10 @@ test('routes fail loudly on unknown sessions, methods, and bodies', async (t) =>
 
 /** 一个裸远端加一个可推送的克隆，使跟踪分支是真实的。 */
 async function makeTrackingRepo(t) {
-  const remote = await mkdtemp(join(tmpdir(), 'git-toolkit-remote-'))
+  const remote = await mkdtemp(join(tmpdir(), 'dsh-toolkit-remote-'))
   t.after(() => rm(remote, { recursive: true, force: true }))
   git(remote, ['init', '--bare', '-b', 'main'])
-  const dir = await mkdtemp(join(tmpdir(), 'git-toolkit-track-'))
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-toolkit-track-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   git(dir, ['init', '-b', 'main'])
   execFileSync('git', [...IDENTITY, 'commit', '--allow-empty', '-m', 'init'], { cwd: dir })
@@ -234,4 +237,26 @@ test('upstream fields survive the status route envelope', async (t) => {
   assert.equal(status, 200)
   const main = json.value.branches.find((branch) => branch.name === 'main')
   assert.deepEqual(main, { name: 'main', current: true, upstream: 'origin/main' })
+})
+
+test('a disabled feature answers every endpoint with feature-disabled', async (t) => {
+  const dir = await makeRepo(t)
+  const { status, json } = await callRoute(
+    routeOf(mockContext(dir), 'status', () => false),
+    { sessionId: 's1' },
+  )
+  assert.equal(status, 404)
+  assert.equal(json.error.code, 'feature-disabled')
+})
+
+test('the routes live under the toolkit API base', async (t) => {
+  const dir = await makeRepo(t)
+  const paths = buildRoutes(mockContext(dir)).map((route) => route.path)
+  assert.deepEqual(paths, [
+    `${API}/status`,
+    `${API}/switch`,
+    `${API}/create`,
+  ])
+  assert.ok(API.startsWith('/api/'), 'API base is an absolute path')
+  assert.ok(!API.includes('git-toolkit'), 'the old plugin id must not survive in the wire path')
 })

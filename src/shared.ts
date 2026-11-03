@@ -1,70 +1,23 @@
 /**
- * dsh-git-toolkit 两半共用的类型与常量。
+ * dsh-toolkit · 两半共用的类型与常量。
  *
  * 本模块会被编译进 Host bundle，也会被打包进浏览器产物，因此必须保持零依赖：
  * 不得有 `node:` 导入，不得依赖 Harness 各包，只能包含类型声明与普通常量。
+ *
+ * 这里只放**跨功能**的东西。某个功能自己的线上类型（请求体、快照）留在该功能的
+ * 目录里，例如 `src/features/git-branch/shared.ts`。
  */
 
-/** 插件 id：Loader 行 id、浏览器工厂 id，以及 locale 命名空间。 */
-export const PLUGIN_ID = 'dsh-git-toolkit'
+/** 插件 id：Loader 行 id、浏览器工厂 id、locale 命名空间，以及详情页配置的键。 */
+export const PLUGIN_ID = 'dsh-toolkit'
 
-/** Host 侧面向浏览器的 API base。 */
-export const API_BASE = '/api/git-toolkit'
-
-/** 切换器所列出的一条本地分支。 */
-export interface BranchEntry {
-  /** 不含 `refs/heads/` 的分支名。 */
-  name: string
-  /** 是否为当前检出的分支。 */
-  current: boolean
-  /**
-   * 配置的上游，采用 `<remote>/<branch>` 简写形式（例如
-   * `origin/fix/released`）；分支未跟踪任何上游时缺省。
-   */
-  upstream?: string
-  /** 配置了上游但该上游在远端已不存在时为 true。 */
-  upstreamGone?: boolean
-}
-
-/** 会话工作目录位于 git work tree 内。 */
-export interface RepoStatusPresent {
-  isRepo: true
-  /** 仓库根的绝对路径。 */
-  root: string
-  /** 当前检出的分支；detached HEAD 时缺省。 */
-  current?: string
-  /** HEAD 处于 detached 状态时为 true（此时 `current` 缺省而 `head` 有值）。 */
-  detached: boolean
-  /** 短 commit hash，仅在 detached HEAD 时存在。 */
-  head?: string
-  /** 全部本地分支，按最近提交时间排序。 */
-  branches: BranchEntry[]
-}
-
-/** 会话工作目录不在 git work tree 内。 */
-export interface RepoStatusAbsent {
-  isRepo: false
-}
-
-/** 每个端点在成功时返回的内容。 */
-export type RepoStatus = RepoStatusPresent | RepoStatusAbsent
-
-/** 每个端点的请求体。 */
-export interface StatusRequest {
-  sessionId: string
-}
-
-/** `POST /switch` 的请求体。 */
-export interface SwitchRequest extends StatusRequest {
-  /** 一个已存在的本地分支名。 */
-  branch: string
-}
-
-/** `POST /create` 的请求体。 */
-export interface CreateRequest extends StatusRequest {
-  /** 新的分支名，基于 HEAD 创建并检出。 */
-  name: string
-}
+/**
+ * 本插件所有端点共享的 base。
+ *
+ * 每个功能在其 base 之下再占一段（例如 git-branch 用 `${API_BASE}/git`），
+ * 因此功能之间不会抢路径。
+ */
+export const API_BASE = '/api/dsh-toolkit'
 
 /** 成功信封。 */
 export interface ApiSuccess<T> {
@@ -72,7 +25,7 @@ export interface ApiSuccess<T> {
   value: T
 }
 
-/** 失败信封：`code` 由 UI 本地化，`message` 可能是 git 自身的文本。 */
+/** 失败信封：`code` 由 UI 本地化，`message` 可能是底层工具自身的文本。 */
 export interface ApiFailure {
   ok: false
   error: {

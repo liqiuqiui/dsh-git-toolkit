@@ -9,5 +9,6 @@
     "rootDir": "src",
     "types": ["node"]
   },
-  "include": ["src/index.ts", "src/shared.ts", "src/host-api.ts"]
+  "//": "只以 Host 入口为种子：tsc 会按 import 关系把可达的 Host 模块一起编译，浏览器侧（src/client）不可达，因此不会被带进 lib/。",
+  "include": ["src/index.ts"]
 }

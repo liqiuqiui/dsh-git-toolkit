@@ -41,12 +41,36 @@ export interface WorkingDirectoryService {
   get?(session: SessionLike): string | undefined
 }
 
+/**
+ * 此处用到的 Host settings 服务子集。
+ *
+ * 插件自带配置页（本插件的插件详情页开关）时用它声明 `auto: false`，让 Host
+ * 不再为它生成 auto 设置页；配置的读写本身仍然可用。
+ */
+export interface SettingsService {
+  /**
+   * 为某个插件 fiber 声明设置页策略；返回的函数用于撤销该策略。
+   * @param policy - 目前只有 `auto`：是否按 schema 自动生成设置页。
+   * @param fiber - 策略所属的插件 fiber（Host 侧传 `ctx.fiber`）。
+   */
+  configure(policy: { auto: boolean }, fiber: unknown): () => void
+}
+
 /** 传给 `apply` 的 Host 上下文。 */
 export interface HostContext {
   /** 运行一个可释放的副作用；回调的返回值即释放函数。 */
   effect(fn: () => unknown, label?: string): unknown
   /** 按 key 查找一个 Host 服务；未知服务返回 `undefined`。 */
   get(key: string): unknown
+  /**
+   * 可选：某个服务可用时运行一段子逻辑。
+   *
+   * 用于把可选依赖（settings）与插件核心职责分开：settings 不存在时功能仍按
+   * 默认值工作，只是没有设置页策略可声明。
+   */
+  inject?(keys: readonly string[], callback: (child: HostContext) => void): unknown
+  /** 本插件在该 Host 中的 fiber；settings 策略需要它来归属。 */
+  fiber?: unknown
   /** Host web server（在 `inject` 中声明）。 */
   webServer: WebServerService
 }

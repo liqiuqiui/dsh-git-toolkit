@@ -8,7 +8,7 @@
  */
 import * as React from 'react'
 
-import type { RepoStatus, RepoStatusPresent } from '../shared.js'
+import type { RepoStatus, RepoStatusPresent } from '../../../features/git-branch/shared.js'
 
 const { useSyncExternalStore } = React
 

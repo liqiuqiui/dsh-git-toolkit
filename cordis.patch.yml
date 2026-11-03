@@ -1,6 +1,7 @@
-# dsh-git-toolkit bundle patch：用一行同时挂载两半——Host 侧（会话作用域的
-# git 分支路由）与浏览器侧（New Session 行内的分支切换器，由本包的
-# client.js 提供）。
+# dsh-toolkit bundle patch：用一行同时挂载两半——Host 侧（各功能的路由与后台
+# 能力）与浏览器侧（各功能在会话界面里的控件，由本包的 client.js 提供）。
+#
+# 行 id 同时是设置 namespace，因此 `dsh-toolkit` 这个名字不要随意改动。
 - insert:
-    - id: dsh-git-toolkit
-      name: dsh-git-toolkit
+    - id: dsh-toolkit
+      name: dsh-toolkit

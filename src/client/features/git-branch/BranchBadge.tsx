@@ -15,7 +15,7 @@ import type { ReactElement } from 'react'
 
 import { currentBranchName, fetchStatus } from './api.js'
 import { BranchIcon } from './icons.js'
-import type { RepoStatusPresent } from '../shared.js'
+import type { RepoStatusPresent } from '../../../features/git-branch/shared.js'
 import { BADGE_CSS } from './styles.js'
 
 const { useEffect, useState } = React
@@ -24,7 +24,7 @@ const { useEffect, useState } = React
 export interface BranchBadgeProps {
   /** composer 所属的会话。 */
   sessionId: string
-  /** 绑定命名空间的翻译函数（`dsh-git-toolkit`）。 */
+  /** 绑定命名空间的翻译函数（`dsh-toolkit/git-branch`）。 */
   t: (key: string) => string
 }
 
