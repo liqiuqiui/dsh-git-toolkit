@@ -1,24 +1,30 @@
 /**
- * 浏览器侧 · 进行中对话下方的分支指示器。
+ * 浏览器侧 · 进行中对话 composer 工具行中的分支徽标。
  *
  * 注册在 `conversation.input.left` 上，这是 Host 在 composer 工具行右端渲染的
  * 列表槽位（位于附件按钮、权限预设和计划预设之后）。New Session 的 Hero 行只在
  * 会话开始前存在，因此进行中的对话无法显示其工作区位于哪个分支；该指示器正是
  * 用来解决这个问题。
  *
- * 它有意保持**只读**：切换分支属于新会话的决策，一个会在 agent 运行期间悄悄把
- * 工作区检出的控件会是个陷阱。完整的选择器仍留在 Hero 行；此元素只做展示，其
- * tooltip 携带所跟踪的远程分支。
+ * 它**仍然不改动工作区**：切换分支属于新会话的决策，一个会在 agent 运行期间
+ * 悄悄把工作区检出的控件会是个陷阱；完整的选择器留在 Hero 行的 pill 上。它唯一
+ * 的动作是复制 —— 悬停时分支图标换成复制图标，点击把当前分支名写进剪贴板并短暂
+ * 显示一个勾。这样它既不会被误读成「可以切换」，分支名也不再只能靠拖选或
+ * 终端里的 `git branch --show-current` 取。
  */
 import * as React from 'react'
 import type { ReactElement } from 'react'
 
 import { currentBranchName, fetchStatus } from './api.js'
-import { BranchIcon } from './icons.js'
+import { branchCopyText, writeClipboard } from './clipboard.js'
+import { BranchIcon, CheckIcon, CopyIcon } from './icons.js'
 import type { RepoStatusPresent } from '../../../features/git-branch/shared.js'
 import { BADGE_CSS } from './styles.js'
 
 const { useEffect, useState } = React
+
+/** 复制成功后勾号保留的时长（毫秒）。够看清，又不至于让徽标长期停在「已复制」。 */
+const COPIED_RESET_MS = 1200
 
 /** Host 传给 `conversation.input.left` 占用者的 props。 */
 export interface BranchBadgeProps {
@@ -40,9 +46,10 @@ function upstreamOf(status: RepoStatusPresent): string | undefined {
   return status.branches.find((branch) => branch.name === name)?.upstream
 }
 
-/** 只读的分支徽标。 */
+/** 分支徽标。 */
 export function BranchBadge({ sessionId, t }: BranchBadgeProps): ReactElement | null {
   const [state, setState] = useState<BadgeState>({ kind: 'hidden' })
+  const [copied, setCopied] = useState(false)
 
   // 挂载时以及 composer 切换会话时拉取，并在窗口重新获得焦点时再检查一次：
   // 工作区可能在长时间对话期间发生变化（agent 本身也可能检出某个分支），
@@ -92,27 +99,69 @@ export function BranchBadge({ sessionId, t }: BranchBadgeProps): ReactElement | 
     }
   }, [sessionId])
 
+  // 勾号是**一次性**反馈：到点自己收回，不留下一个永远停在「已复制」的徽标，
+  // 因此用户不必再点一次来复位。组件卸载时清掉定时器。
+  useEffect(() => {
+    if (!copied) return undefined
+    const timer = setTimeout(() => setCopied(false), COPIED_RESET_MS)
+    return () => clearTimeout(timer)
+  }, [copied])
+
   if (state.kind === 'hidden') return null
 
   const { status } = state
   const label = currentBranchName(status)
+  // 复制的是「分支身份」而不是可见标签：游离 HEAD 时标签是 `HEAD`（因为它是
+  // 一个状态而不是名字），而用户真正想拿走的是那个提交。
+  const copyText = branchCopyText(status)
   const upstream = upstreamOf(status)
   // 游离 HEAD 没有分支名，因此优先显示提交，而不是一个光秃秃的「HEAD」——
   // 后者看起来像是一个可以切回去的分支。
   const detail = status.detached ? status.head : undefined
-  const title =
-    upstream === undefined ? label : `${label} → ${upstream}`
-  const description =
-    detail === undefined ? title : `${title} (${t('detachedHead')} ${detail})`
+  const title = upstream === undefined ? label : `${label} → ${upstream}`
+  const description = detail === undefined ? title : `${title} (${t('detachedHead')} ${detail})`
+
+  /**
+   * 点击即复制。复制失败时不假装成功（不显示勾号），只在控制台留一条记录：
+   * 徽标位于 composer 内部，不适合就地为一次剪贴板失败展开一条错误消息。
+   */
+  function onCopy(): void {
+    void writeClipboard(copyText).then((ok) => {
+      if (ok) {
+        setCopied(true)
+        return
+      }
+      console.error('[dsh-toolkit/git-branch] clipboard write failed')
+    })
+  }
 
   return (
     <>
       <style>{BADGE_CSS}</style>
-      <span className="gtk-badge" title={description} aria-label={`${t('currentBranch')}: ${description}`}>
-        <BranchIcon className="gtk-badge-icon" size={14} />
+      <button
+        type="button"
+        className="gtk-badge"
+        data-copied={copied ? 'true' : 'false'}
+        title={copied ? `${t('copied')}: ${label}` : `${description}\n${t('copyBranchHint')}`}
+        aria-label={copied ? `${t('copied')}: ${description}` : `${t('copyBranch')}: ${description}`}
+        onClick={onCopy}
+      >
+        <span className="gtk-badge-icon gtk-badge-branch">
+          <BranchIcon size={14} />
+        </span>
+        <span className="gtk-badge-icon gtk-badge-copy">
+          <CopyIcon />
+        </span>
+        <span className="gtk-badge-icon gtk-badge-check">
+          <CheckIcon />
+        </span>
         <span className="gtk-badge-label">{label}</span>
         {detail === undefined ? null : <span className="gtk-badge-detail">{detail}</span>}
-      </span>
+        {/* 勾号只对看得见的人有效；读屏用户靠这条 live region 听到「已复制」。 */}
+        <span className="gtk-badge-live" aria-live="polite">
+          {copied ? t('copied') : ''}
+        </span>
+      </button>
     </>
   )
 }

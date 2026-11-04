@@ -49,8 +49,16 @@ div:has(> [data-slot="conversation.hero.options"]):has(.gtk-seat){margin-left:0}
  * `padding:0 4px 0 8px`、13px/500/20px，以及 14px 图标（权限触发器设为
  * `.triggerIcon svg{14px}` —— composer 比 hero 行更紧凑，后者图标是 16px）。
  *
- * 只读，因此与 hero 胶囊不同：没有 hover 底色，也没有 pointer 光标与
- * focus ring：它必须看起来不可切换。
+ * 它只做一个动作 —— 复制分支名 —— 因此与 hero 胶囊的触发器外观区分开：不是
+ * 「打开某个面板」的按钮（没有 chevron、没有 `aria-haspopup`），而是一个就地
+ * 动作。悬停时补上与工具行其他控件一致的 hover 底色、pointer 光标与 focus
+ * ring，表示这里可以按；同时把分支图标换成复制图标 —— 图标本身就是说明，省掉
+ * 一个每行都要占位的文字提示。复制成功后换成勾号，约 1.2 秒后自动收回（时长
+ * 定义在 `BranchBadge.tsx` 的 `COPIED_RESET_MS`）。
+ *
+ * 图标切换全部由 CSS 完成：`:hover` / `:focus-visible` 选中复制图标，
+ * `data-copied=true` 选中勾号。因此鼠标划过这一行不会触发 React 重渲染，
+ * 只有真正点击复制后才更新一次状态。
  *
  * 第一条规则在 **New Session** 页面隐藏该 chip。Host 用同一个 composer
  * 组件渲染该页面与运行中的对话，并在对话根节点上标记当前是哪一种：
@@ -70,10 +78,18 @@ div:has(> [data-slot="conversation.hero.options"]):has(.gtk-seat){margin-left:0}
  */
 export const BADGE_CSS = `
 [data-phase=hero] .gtk-badge,[data-phase=settling] .gtk-badge,[data-content-phase=hero] .gtk-badge,[data-content-phase=settling] .gtk-badge{display:none}
-.gtk-badge{border-radius:var(--dsw-radius-sm);min-width:0;max-width:220px;height:28px;color:var(--dsw-alias-label-secondary);align-items:center;gap:4px;padding:0 4px 0 8px;font-family:var(--dsw-font-family);font-size:13px;font-weight:500;line-height:20px;display:inline-flex;cursor:default;user-select:none}
+.gtk-badge{box-sizing:border-box;border-radius:var(--dsw-radius-sm);min-width:0;max-width:220px;height:28px;color:var(--dsw-alias-label-secondary);align-items:center;gap:4px;padding:0 4px 0 8px;font-family:var(--dsw-font-family);font-size:13px;font-weight:500;line-height:20px;display:inline-flex;cursor:pointer;user-select:none;background:0 0;border:none;outline:none;text-align:left}
+.gtk-badge:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.gtk-badge:focus-visible{box-shadow:0 0 0 2px var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary))}
 .gtk-badge-icon{color:var(--dsw-alias-label-secondary);flex:none;display:inline-flex}
+.gtk-badge-copy,.gtk-badge-check{display:none}
+.gtk-badge:hover .gtk-badge-branch,.gtk-badge:focus-visible .gtk-badge-branch{display:none}
+.gtk-badge:hover .gtk-badge-copy,.gtk-badge:focus-visible .gtk-badge-copy{display:inline-flex}
+.gtk-badge[data-copied=true] .gtk-badge-branch,.gtk-badge[data-copied=true] .gtk-badge-copy{display:none}
+.gtk-badge[data-copied=true] .gtk-badge-check{display:inline-flex;color:var(--dsw-alias-state-success-primary)}
 .gtk-badge-label{text-overflow:ellipsis;white-space:nowrap;overflow:hidden;min-width:0}
 .gtk-badge-detail{color:var(--dsw-alias-label-caption);flex:none;font-family:var(--ds-font-family-code,monospace);font-size:11px;line-height:16px}
+.gtk-badge-live{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 `
 
 /**

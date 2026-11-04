@@ -492,3 +492,155 @@ test('a throwing whenService callback is contained to its own feature', () => {
   assert.ok(registrations.some((entry) => entry.options.id === 'survivor-slot'))
   assert.ok(capture.messages.some((line) => line.includes('service blew up')))
 })
+
+// ---------------------------------------------------------------------------
+// git-branch：徽标的「点击复制分支名」。
+//
+// 复制什么由 `branchCopyText` 决定，怎么写由 `writeClipboard` 决定；两者都从
+// 产物导出，因此用一个结构化的 navigator/document 桩就能断言真实行为 ——
+// 不需要渲染组件，也不会真的碰系统剪贴板。
+// ---------------------------------------------------------------------------
+
+/** 安装临时全局；返回还原函数（Node 里 `navigator` 是 configurable 的 accessor）。 */
+function installGlobals(values) {
+  const saved = new Map()
+  for (const [key, value] of Object.entries(values)) {
+    saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key))
+    Object.defineProperty(globalThis, key, { value, configurable: true, writable: true })
+  }
+  return () => {
+    for (const [key, descriptor] of saved) {
+      if (descriptor === undefined) delete globalThis[key]
+      else Object.defineProperty(globalThis, key, descriptor)
+    }
+  }
+}
+
+/** 一份可以按需改字段的仓库快照。 */
+function repoStatus(overrides = {}) {
+  return {
+    isRepo: true,
+    root: '/repo',
+    detached: false,
+    current: 'fix/released',
+    branches: [{ name: 'fix/released', current: true, upstream: 'origin/fix/released' }],
+    ...overrides,
+  }
+}
+
+test('branchCopyText copies the branch name, not the upstream or the tooltip text', () => {
+  const { exports } = loadBundle(BUNDLE)
+  assert.equal(exports.branchCopyText(repoStatus()), 'fix/released')
+  assert.equal(exports.branchCopyText(repoStatus({ current: 'main', branches: [] })), 'main')
+})
+
+test('branchCopyText copies the commit, not a bare HEAD, while detached', () => {
+  const { exports } = loadBundle(BUNDLE)
+  const detached = repoStatus({ detached: true, current: undefined, head: 'a1b2c3d' })
+  assert.equal(exports.branchCopyText(detached), 'a1b2c3d', 'the commit is what a user can paste')
+  assert.equal(exports.branchCopyText(repoStatus({ detached: true, current: undefined })), 'HEAD')
+})
+
+test('branchCopyText falls back to HEAD when the branch name is empty', () => {
+  const { exports } = loadBundle(BUNDLE)
+  assert.equal(exports.branchCopyText(repoStatus({ current: '' })), 'HEAD')
+})
+
+test('writeClipboard uses the async Clipboard API when it is available', async () => {
+  const { exports } = loadBundle(BUNDLE)
+  const written = []
+  const restore = installGlobals({
+    navigator: { clipboard: { writeText: async (text) => { written.push(text) } } },
+  })
+  try {
+    assert.equal(await exports.writeClipboard('fix/released'), true)
+    assert.deepEqual(written, ['fix/released'])
+  } finally {
+    restore()
+  }
+})
+
+test('writeClipboard falls back to execCommand when the Clipboard API rejects', async () => {
+  const { exports } = loadBundle(BUNDLE)
+  const calls = []
+  const area = {
+    value: '',
+    style: {},
+    setAttribute() {},
+    select() { calls.push('select') },
+    remove() { calls.push('remove') },
+  }
+  const restore = installGlobals({
+    navigator: { clipboard: { writeText: async () => { throw new Error('denied') } } },
+    document: {
+      activeElement: null,
+      body: { appendChild() { calls.push('append') } },
+      createElement: (tag) => {
+        assert.equal(tag, 'textarea', 'the fallback uses a hidden textarea')
+        return area
+      },
+      getSelection: () => null,
+      execCommand: (command) => {
+        calls.push(command)
+        return true
+      },
+    },
+  })
+  try {
+    assert.equal(await exports.writeClipboard('fix/released'), true, 'the fallback reports success')
+    assert.equal(area.value, 'fix/released', 'the text went through the textarea')
+    assert.deepEqual(calls, ['append', 'select', 'copy', 'remove'], 'cleaned up after itself')
+  } finally {
+    restore()
+  }
+})
+
+test('writeClipboard reports failure instead of throwing when nothing works', async () => {
+  const { exports } = loadBundle(BUNDLE)
+  // 没有 Clipboard API，execCommand 也拒绝。
+  const restore = installGlobals({
+    navigator: {},
+    document: {
+      body: { appendChild() {} },
+      createElement: () => ({ value: '', style: {}, setAttribute() {}, select() {}, remove() {} }),
+      getSelection: () => null,
+      execCommand: () => false,
+    },
+  })
+  try {
+    assert.equal(await exports.writeClipboard('main'), false, 'a click on a locked-down browser reports failure')
+  } finally {
+    restore()
+  }
+})
+
+test('writeClipboard contains an exception thrown by execCommand', async () => {
+  const { exports } = loadBundle(BUNDLE)
+  const restore = installGlobals({
+    navigator: {},
+    document: {
+      body: { appendChild() {} },
+      createElement: () => ({ value: '', style: {}, setAttribute() {}, select() {}, remove() {} }),
+      getSelection: () => null,
+      execCommand() {
+        throw new Error('blocked by permissions policy')
+      },
+    },
+  })
+  try {
+    // 不抛到点击处理器外面：复制失败只是「这次没生效」。
+    assert.equal(await exports.writeClipboard('main'), false)
+  } finally {
+    restore()
+  }
+})
+
+test('writeClipboard reports failure without a document', async () => {
+  const { exports } = loadBundle(BUNDLE)
+  const restore = installGlobals({ navigator: {} })
+  try {
+    assert.equal(await exports.writeClipboard('main'), false)
+  } finally {
+    restore()
+  }
+})

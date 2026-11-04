@@ -33,6 +33,9 @@ export const ZH = {
   branchFolder: '分支文件夹',
   currentBranch: '当前分支',
   detachedHead: '游离 HEAD',
+  copyBranch: '复制分支名',
+  copyBranchHint: '点击复制分支名',
+  copied: '已复制',
 } as const satisfies MessageDict
 
 /** 该功能用到的全部翻译键。 */
@@ -60,4 +63,7 @@ export const EN = {
   branchFolder: 'Branch folder',
   currentBranch: 'Current branch',
   detachedHead: 'detached HEAD',
+  copyBranch: 'Copy branch name',
+  copyBranchHint: 'Click to copy the branch name',
+  copied: 'Copied',
 } as const satisfies Readonly<Record<MessageKey, string>>

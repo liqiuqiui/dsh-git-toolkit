@@ -94,6 +94,22 @@ export function CheckIcon({ className }: IconProps): ReactElement {
   )
 }
 
+/**
+ * 复制：两片叠放的单据。
+ *
+ * 悬停分支徽标时用它替换分支字形，把「这里可以复制」写在图标本身里；复制成功
+ * 后再换成 {@link CheckIcon} 作为反馈。三个字形共享同一套 16 单位 viewBox 与
+ * 1.5 描边，因此切换时不会跳动。
+ */
+export function CopyIcon({ className }: IconProps): ReactElement {
+  return (
+    <Svg className={className} size={14}>
+      <rect x={5.75} y={5.75} width={7.5} height={7.5} rx={1.6} />
+      <path d="M10.5 5.75V4.5A1.5 1.5 0 0 0 9 3H4.5A1.5 1.5 0 0 0 3 4.5V9a1.5 1.5 0 0 0 1.5 1.5h1.25" />
+    </Svg>
+  )
+}
+
 /** {@link FolderIcon} 的 props：它选择展开或闭合字形。 */
 export interface FolderIconProps extends IconProps {
   /** 它所标注的文件夹是否已展开；决定选用展开字形。 */

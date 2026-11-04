@@ -30,6 +30,16 @@ import { toggleStore } from './toggles.js'
 export const name: string = PLUGIN_ID
 
 /**
+ * git-branch 的纯逻辑再导出，供测试直接调用。
+ *
+ * `branchCopyText` 决定点击徽标时复制什么，`writeClipboard` 是剪贴板通道本身。
+ * 暴露它们就能在 Node 里断言「复制的是分支名，而不是 tooltip 里的整串描述」
+ * 以及「Clipboard API 不可用或被拒绝时退回 `execCommand`」，不必渲染组件或
+ * 真的碰系统剪贴板。
+ */
+export { branchCopyText, writeClipboard } from './features/git-branch/clipboard.js'
+
+/**
  * 该侧强依赖的 Host services：slot 注册表和 locale 注册表。
  *
  * `configForms` **不**在这里：设置页只是功能开关的一个可选宿主，缺少它的部署
