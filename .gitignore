@@ -3,3 +3,4 @@ lib/
 .DS_Store
 *.tsbuildinfo
 .pnpm-store/
+docs

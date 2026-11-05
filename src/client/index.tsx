@@ -30,6 +30,51 @@ import { toggleStore } from './toggles.js'
 export const name: string = PLUGIN_ID
 
 /**
+ * message-quote 的纯逻辑再导出，供测试与诊断直接调用。
+ *
+ * 这几项都是**纯函数**（不读 DOM、不依赖 React 渲染），把它们暴露在产物上，
+ * 就能在 Node 里断言引用块格式、选区判定与两条插入通道的降级顺序，而不必在
+ * 测试里搭一套 DOM 或完整渲染。loader 只消费 `name` / `inject` / `apply`，多出
+ * 这些导出不影响加载。
+ */
+export {
+  buildQuoteBlock,
+  buildQuoteLabel,
+  buildQuotePreview,
+  stripMarkdown,
+  LABEL_LIMIT,
+  DEFAULT_LIMIT,
+  PREVIEW_LIMIT,
+  parseQuoteBlock,
+} from './features/message-quote/quote-text.js'
+export {
+  quoteMatch,
+  QUOTE_NODE_KEY,
+  QUOTE_RULE_ORDER,
+  QuoteNodeView,
+  type QuoteNodeViewProps,
+} from './features/message-quote/quote-node.js'
+export {
+  markdownLabels,
+  QuoteMarkdown,
+  useMarkdownLabels,
+  type QuoteMarkdownProps,
+} from './features/message-quote/markdown.js'
+export { serializeElement, serializeNode, serializeRange } from './features/message-quote/serialize.js'
+export { resolvePrimitives, HOST_PRIMITIVES, HostMarkdownText } from './primitives.js'
+export {
+  shouldOffer,
+  MIN_LENGTH,
+  ASSISTANT_SELECTOR,
+  TURN_SELECTOR,
+  TRANSCRIPT_SELECTOR,
+} from './features/message-quote/selection.js'
+export { insertQuote } from './features/message-quote/insert.js'
+export { placeMenu } from './features/message-quote/quote-popover.js'
+export { placeTip, GAP as TIP_GAP, EDGE as TIP_EDGE, SHOW_DELAY_MS, HIDE_DELAY_MS } from './features/message-quote/quote-tip.js'
+export { isQuotedMessageOccurrence, quoteRemovalSpan } from './features/message-quote/remove.js'
+
+/**
  * git-branch 的纯逻辑再导出，供测试直接调用。
  *
  * `branchCopyText` 决定点击徽标时复制什么，`writeClipboard` 是剪贴板通道本身。

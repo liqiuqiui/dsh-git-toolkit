@@ -37,8 +37,8 @@ export interface ClientFeatureContext {
   readonly ctx: ClientPluginContext
   /** 本功能的 locale 命名空间。 */
   readonly namespace: string
-  /** 绑定到 {@link namespace} 的翻译函数。 */
-  t(key: string): string
+  /** 绑定到 {@link namespace} 的翻译函数；`params` 用于 `{name}` 占位插值。 */
+  t(key: string, params?: Record<string, unknown>): string
   /** 该功能此刻是否开启。 */
   isEnabled(): boolean
   /**
@@ -50,6 +50,22 @@ export interface ClientFeatureContext {
   occupy<P extends object>(
     slotName: string,
     options: { id: string; order?: number },
+    component: ComponentType<P>,
+  ): void
+  /**
+   * 注册一个**键化** slot（`kind: "keyed"`）的占用者，并随插件一起释放。
+   *
+   * 与 {@link occupy} 的区别只在寻址方式：list slot 用 `id` 排成一列，keyed slot
+   * 用 `key` 按名字查一项——宿主是按名字取它的，例如
+   * `conversation.user.text.node` 用 `entryKey: node.id` 来选 renderer。把两者
+   * 合成一个方法会让「传错字段」变成静默不渲染，所以刻意分开。
+   * @param slotName - 目标 slot。
+   * @param options - 键与排序；键必须与匹配规则声明的 `id` 一致。
+   * @param component - 占用者组件。
+   */
+  occupyKeyed<P extends object>(
+    slotName: string,
+    options: { key: string; order?: number },
     component: ComponentType<P>,
   ): void
   /**
@@ -161,6 +177,27 @@ export function clientFeatureContext(
             ),
           ),
         `dsh-toolkit: ${entry.id} · ${slotName}`,
+      )
+    },
+    occupyKeyed<P extends object>(
+      slotName: string,
+      registration: { key: string; order?: number },
+      component: ComponentType<P>,
+    ): void {
+      ctx.effect(
+        () =>
+          slots.inject(slotName, () =>
+            slots.register(
+              {
+                name: slotName,
+                key: registration.key,
+                order: registration.order ?? 10,
+                locale: namespace,
+              },
+              component,
+            ),
+          ),
+        `dsh-toolkit: ${entry.id} · ${slotName} · ${registration.key}`,
       )
     },
   }

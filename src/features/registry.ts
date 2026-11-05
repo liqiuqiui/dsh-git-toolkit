@@ -10,8 +10,10 @@
 import type { FeatureId } from '../features.js'
 import type { HostFeature } from '../host/feature.js'
 import { gitBranchFeature } from '../features/git-branch/host.js'
+import { messageQuoteFeature } from '../features/message-quote/host.js'
 
 /** 每个功能 id 对应的 Host 实现。 */
 export const HOST_FEATURES: Readonly<Record<FeatureId, HostFeature>> = {
   'git-branch': gitBranchFeature,
+  'message-quote': messageQuoteFeature,
 }

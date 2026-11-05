@@ -8,6 +8,7 @@
 import { FEATURES, FEATURE_LIST, type FeatureId } from '../../features.js'
 import type { ClientFeatureEntry } from '../feature.js'
 import { gitBranchClientFeature } from './git-branch/index.js'
+import { messageQuoteClientFeature } from './message-quote/index.js'
 
 /** 每个功能 id 对应的浏览器实现。 */
 const IMPLEMENTATIONS: Readonly<Record<FeatureId, ClientFeatureEntry>> = {
@@ -15,6 +16,11 @@ const IMPLEMENTATIONS: Readonly<Record<FeatureId, ClientFeatureEntry>> = {
     id: 'git-branch',
     configKey: FEATURES['git-branch'].configKey,
     feature: gitBranchClientFeature,
+  },
+  'message-quote': {
+    id: 'message-quote',
+    configKey: FEATURES['message-quote'].configKey,
+    feature: messageQuoteClientFeature,
   },
 }
 

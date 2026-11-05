@@ -18,6 +18,8 @@ const ZH = {
   'toolkit.status.failed': '保存失败，已恢复为 Host 的当前值。',
   'gitBranch.title': 'Git 分支',
   'gitBranch.description': '在会话中显示当前分支，并支持切换与新建分支。',
+  'messageQuote.title': '引用消息',
+  'messageQuote.description': '选中会话里的文字后浮出引用菜单，把选中片段作为参考材料加入输入框。',
 } as const satisfies Dict
 
 /** 全部键。 */
@@ -35,6 +37,9 @@ const EN: Readonly<Record<ToolkitKey, string>> = {
   'toolkit.status.failed': 'Could not save; reverted to the value the Host reports.',
   'gitBranch.title': 'Git branch',
   'gitBranch.description': 'Shows the session branch and lets you switch to or create one.',
+  'messageQuote.title': 'Quote message',
+  'messageQuote.description':
+    'Selecting text in the conversation floats a quote menu that adds the selection to the composer as reference material.',
 }
 
 /** 交给 locale 服务的两个字典，以插件 id 为命名空间。 */

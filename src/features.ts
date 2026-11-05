@@ -45,6 +45,12 @@ export const FEATURES = {
     titleKey: 'gitBranch.title',
     descriptionKey: 'gitBranch.description',
   },
+  'message-quote': {
+    configKey: 'messageQuote',
+    defaultEnabled: true,
+    titleKey: 'messageQuote.title',
+    descriptionKey: 'messageQuote.description',
+  },
 } as const satisfies Record<string, FeatureDescriptor>
 
 /** 功能 id：{@link FEATURES} 的键。 */
