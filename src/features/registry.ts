@@ -9,6 +9,7 @@
  */
 import type { FeatureId } from '../features.js'
 import type { HostFeature } from '../host/feature.js'
+import { fileMenuFeature } from '../features/file-menu/host.js'
 import { gitBranchFeature } from '../features/git-branch/host.js'
 import { messageQuoteFeature } from '../features/message-quote/host.js'
 
@@ -16,4 +17,5 @@ import { messageQuoteFeature } from '../features/message-quote/host.js'
 export const HOST_FEATURES: Readonly<Record<FeatureId, HostFeature>> = {
   'git-branch': gitBranchFeature,
   'message-quote': messageQuoteFeature,
+  'file-menu': fileMenuFeature,
 }

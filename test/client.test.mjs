@@ -156,6 +156,15 @@ function mockConfigForms({ namespace = 'dsh-toolkit', value = { gitBranch: true 
 
 const BUNDLE = new URL('../lib/client.js', import.meta.url).pathname
 
+/**
+ * `apply` 在**带设置服务**时注册的总数：各功能的槽位占用者 + 那个开关区块。
+ *
+ * 每个功能注册自己的若干占用者，因此这个数字随功能数增长：断言它等于一个常量
+ * 而不是「当下这几次注册」，才能真正抓到「开关变化引起了注册表抖动」。
+ * 无设置服务时的占用者清单由下面那条测试逐项列出，不依赖这个数字。
+ */
+const EXPECTED_REGISTRATIONS = 7
+
 test('the bundle registers itself with the toolkit id and exports apply', () => {
   const { id, exports, requires } = loadBundle(BUNDLE)
   assert.equal(id, 'dsh-toolkit')
@@ -190,19 +199,31 @@ test('without a settings service the features still mount, the toggle section do
   const { ctx, registrations, locales } = mockContext()
   exports.apply(ctx)
 
-  const slots = registrations.map((entry) => entry.options.name).sort()
-  assert.deepEqual(slots, [
-    'conversation.hero.options',
-    'conversation.input.left',
-    'conversation.input.overlay',
-    'shell.overlay',
+  // 断言 id 而不是只断言 slot 名：多个功能会共享同一个 slot
+  // （`conversation.input.left` 与 `shell.overlay` 各被两个功能占用），只比名字
+  // 会让「谁占了哪个」这层信息丢掉。
+  const occupied = registrations
+    .map((entry) => `${entry.options.name} · ${entry.options.id}`)
+    .sort()
+  assert.deepEqual(occupied, [
+    'conversation.hero.options · toolkit-git-branch',
+    'conversation.input.left · toolkit-file-menu-session',
+    'conversation.input.left · toolkit-git-branch-badge',
+    'conversation.input.overlay · toolkit-message-quote',
+    'shell.overlay · toolkit-file-menu',
+    'shell.overlay · toolkit-git-branch-popover',
   ])
   assert.ok(
     !registrations.some((entry) => entry.options.name === 'plugins.bundle.config'),
     'no settings service means no toggle section',
   )
   const namespaces = locales.map((entry) => entry.namespace).sort()
-  assert.deepEqual(namespaces, ['dsh-toolkit', 'dsh-toolkit/git-branch', 'dsh-toolkit/message-quote'])
+  assert.deepEqual(namespaces, [
+    'dsh-toolkit',
+    'dsh-toolkit/file-menu',
+    'dsh-toolkit/git-branch',
+    'dsh-toolkit/message-quote',
+  ])
 })
 
 test('with a settings service the toggle section is keyed by the package name', () => {
@@ -226,7 +247,7 @@ test('with a settings service the toggle section is keyed by the package name', 
 test('a disabled feature renders nothing through its occupied slot', () => {
   const { exports } = loadBundle(BUNDLE)
   // 关掉**每一个**功能：这条断言要覆盖所有占用者，任何一个漏关都会在这里暴露。
-  const configForms = mockConfigForms({ value: { gitBranch: false, messageQuote: false } })
+  const configForms = mockConfigForms({ value: { gitBranch: false, messageQuote: false, fileMenu: false } })
   const { ctx, registrations } = mockContext({ configForms })
   exports.apply(ctx)
 
@@ -266,7 +287,7 @@ test('turning a feature back on renders it again without re-registering', async 
   // 开关翻转：卷展（volatile）写入只更新 store，不重跑 apply，槽位注册保持不变。
   value = { gitBranch: true }
   for (const listener of formListeners) listener()
-  assert.equal(registrations.length, 5, 'no re-registration happened')
+  assert.equal(registrations.length, EXPECTED_REGISTRATIONS, 'no re-registration happened')
   assert.notEqual(badge.component({ t: (key) => key }), null, 'the badge is back')
 })
 
@@ -376,7 +397,7 @@ test('toggling a feature off in the section hides its controls immediately', asy
 
   assert.deepEqual(configForms.writes, [['gitBranch', false]])
   assert.equal(badge.component({ t }), null, 'the badge is gone without re-registering')
-  assert.equal(registrations.length, 5, 'the slot registry did not churn')
+  assert.equal(registrations.length, EXPECTED_REGISTRATIONS, 'the slot registry did not churn')
 })
 
 test('a rejected write rolls the switch back to the host value', async () => {

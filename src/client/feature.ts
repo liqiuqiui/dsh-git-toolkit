@@ -84,13 +84,18 @@ export interface ClientFeatureContext {
 /**
  * 从子上下文里按名字取服务，支持 `a.b` 这样的点路径。
  *
- * `ctx.inject(keys, scope => …)` 交来的子上下文把服务挂成同名属性，因此这里按路径
- * 逐段取即可，不需要认识任何具体服务。
+ * 先按**整个键名**取一次：`inject` 交来的子上下文把每个被注入的键挂成同名属性，
+ * 因此注入 `remote.session` 时属性名就是 `'remote.session'`。取不到再按点号逐段
+ * 下钻，这样 `remote` 与 `remote.session` 两种注入方式都能读到同一个命名空间
+ * （把整个键当属性名是 Cordis 的行为，逐段下钻则是「只注入了根服务」时的形态）。
  * @param scope - `inject` 交来的子上下文。
  * @param name - 服务名。
- * @returns 服务；路径不存在时返回 undefined。
+ * @returns 服务；两条路径都取不到时返回 undefined。
  */
 function readService(scope: unknown, name: string): unknown {
+  if (scope === null || typeof scope !== 'object') return undefined
+  const direct = (scope as Record<string, unknown>)[name]
+  if (direct !== undefined && direct !== null) return direct
   let node: unknown = scope
   for (const segment of name.split('.')) {
     if (node === null || typeof node !== 'object') return undefined

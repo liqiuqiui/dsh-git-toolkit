@@ -10,6 +10,7 @@ DeepSeek Harness（dsh）的小功能工具包。每个功能互相独立，在*
 | --- | --- | --- |
 | **Git 分支** `git-branch` | 已提供 | 新建会话时选择工作区要用的分支；已开始的对话里显示当前分支。 |
 | **引用消息** `message-quote` | 已提供 | 选中会话里的文字，浮出「引用」菜单，把选中片段作为参考材料加入输入框。 |
+| **文件右键菜单** `file-menu` | 已提供 | 在会话里的文件链接上右键，用系统程序打开、另存为、复制路径或内容。 |
 
 ### Git 分支
 
@@ -59,6 +60,27 @@ DeepSeek Harness（dsh）的小功能工具包。每个功能互相独立，在*
 
 引用块会自己带上首尾换行，因此你在 chip 后面接着输入的文字不会被卷进引用里——它既留在模型的上下文之外，也不会在显示时被引用 chip 吞掉。
 
+### 文件右键菜单
+
+对话里出现的文件引用（`src/client/features/git-branch/BranchBadge.tsx` 这种）右键即出菜单：
+
+- **打开文件** —— 用系统默认程序打开；
+- **在 <编辑器> 中打开** —— 直接提一个最可能的编辑器，行文案随实际程序变化（装了 Cursor 就是「在 Cursor 中打开」）。名字与图标都来自这台机器上真实的处理器登记；一个已知编辑器都没有时这一行不出现；
+- **打开方式 ▸** —— 完整的应用列表，每项带应用自己的图标，当前默认程序有勾；
+- **另存为…** —— 先弹出系统保存对话框选去向，再读文件写入；
+- **复制路径** / **复制文件内容** —— 复制绝对路径（可直接粘进终端）或整份文本内容（2 MB 以内、且必须是 UTF-8 文本）；
+- **在 Finder 中显示** —— 在文件管理器里定位该文件。
+
+有文本选区时右键不会接管，仍然弹浏览器原生菜单 —— 那时用户的意图多半是「复制这段文字」。
+
+几条刻意的取舍：
+
+- **只用宿主已有的能力**。打开/定位走会话控制器的 `openWorkspacePath`，读文件走 `workspaceFiles`，因此这个功能**没有自己的后端接口**（`host.ts` 的 `register` 是空的）。少一套要维护的传输、少一处要鉴权的读写路径。
+- **右键监听是 DOM 委托**。Markdown 渲染器没有给文件引用留回调，任何既有插件也不监听 `contextmenu`，所以这里在 `document` 上装一个捕获监听器；命中文件引用才 `preventDefault()`，其余位置保留浏览器原生菜单。功能关掉时监听器一并消失。
+- **相对路径先翻译再交给宿机**。`openWorkspacePath` 要求绝对路径，而会话里的文件引用是相对**会话工作区**写的；中间用 `workspaceFiles.stat` 换算，否则会按宿主进程的 cwd 解析到错误的位置。
+- **另存为在浏览器侧落地，而且先问去向再读字节**。宿主没有保存对话框能力，因此优先用 File System Access API 的原生对话框，不可用时退回浏览器下载通道；不为此新增 Host 路由。顺序是刻意的：系统对话框需要「用户手势」，而读文件是一次异步往返，先弹框既不必依赖手势仍然有效，也让大文件不必在对话框出现前先等传输；用户在对话框里按取消只是收起菜单，不算失败。
+- **能力缺席就逐项降级**。`remote.session` 缺失时不显示打开/定位类项，`remote.workspaceFiles` 缺失时不显示读内容类项，两个都缺时这个右键菜单根本不接管 —— 而不是弹一个全是灰条的空菜单。`workspacePathApplications` 查询失败（而不是返回空列表）时同样收掉打开类项：那说明这个路径交不给原生桌面，留着只会点了必报错。
+
 ## 开关功能
 
 插件详情页（插件管理器 → Toolkit → 该组合包）里有「功能开关」区块，每个功能一行。打开或关闭会**立即生效**，不需要重启 dsh、也不会丢失当前会话的状态：
@@ -82,8 +104,10 @@ src/
 │   ├── git-branch/
 │   │   ├── host.ts             # 该功能的 Host 表面：3 条 JSON 路由 + git 调用
 │   │   └── shared.ts           # 该功能的线协议类型（BranchEntry / RepoStatus…）
-│   └── message-quote/
-│       └── host.ts             # 空实现：该功能纯浏览器，只为满足注册表完整性
+│   ├── message-quote/
+│   │   └── host.ts             # 空实现：该功能纯浏览器，只为满足注册表完整性
+│   └── file-menu/
+│       └── host.ts             # 没有自有接口：全部动作复用宿主已有的 Remote
 ├── host/
 │   ├── http.ts                 # JSON 路由的传输层：信封、错误码 → 状态码
 │   └── feature.ts              # HostFeature 契约 + 功能注册上下文
@@ -94,7 +118,20 @@ src/
     ├── features/
     │   ├── registry.ts         # Record<FeatureId, ClientFeatureEntry>
     │   ├── git-branch/         # 该功能全部 UI（pill / 浮层 / 徽标 / 文案）
-    │   └── message-quote/      # 选区探测、引用块拼装、插入通道、浮层菜单、已发送消息的显示
+    │   ├── message-quote/      # 选区探测、引用块拼装、插入通道、浮层菜单、已发送消息的显示
+    │   └── file-menu/          # 右键菜单：
+    │       ├── index.ts        #   装配：文档级监听 + 两个 slot 占用者
+    │       ├── FileMenu.tsx    #   菜单本体：行模型、键盘、子菜单、反馈
+    │       ├── actions.ts      #   每个动作 ↔ 一条宿主能力的封装（可单测）
+    │       ├── target.ts       #   从右键目标回溯到文件引用（DOM 委托的判定）
+    │       ├── preferred.ts    #   从「打开方式」里挑要提到一级的编辑器
+    │       ├── store.ts        #   模块级状态（useSyncExternalStore）
+    │       ├── runtime.ts      #   会话 id 与 Remote 面的运行期持有
+    │       ├── SessionSeat.tsx #   把 composer 的 sessionId 转达给菜单
+    │       ├── icons.tsx       #   内联 SVG（bundle 不能引图标包）
+    │       ├── styles.ts       #   注入的样式表（全部走主题 token）
+    │       └── locale.ts       #   文案
+    ├── clipboard.ts            # 跨功能的剪贴板写入（Clipboard API → execCommand 兜底）
     ├── toggles.ts              # 开关状态机（无框架依赖，可单测）
     ├── use-toggles.ts          # 订阅开关的 React hook
     ├── gate.tsx                # 按开关渲染的包装器（关掉即不渲染）
@@ -124,7 +161,8 @@ src/
 
 - API 路径：每个功能占 `${API_BASE}/<功能>` 一个子路径；
 - slot 占用者 id：`toolkit-<功能>-<用途>`；
-- CSS 类名前缀：每个功能自持一个前缀（`git-branch` 用 `gtk-`，`message-quote` 用 `gtk-quote-`，工具包自身用 `dtk-`）；
+- CSS 类名前缀：每个功能自持一个前缀（`git-branch` 用 `gtk-`，`message-quote` 用 `gtk-quote-`，`file-menu` 用 `ctxm-`，工具包自身用 `dtk-`）；
+- DOM 标记：功能若需在渲染出的 HTML 上定位元素，用 `data-<前缀>-*` 而不是全局 class；
 - 文案键：已按功能隔离，功能内部写 `title` 也不会撞车。
 
 需要在浏览器侧用 Harness 服务（例如 `sessions`）时：

@@ -1,4 +1,6 @@
-node_modules/
+# 不带尾部斜杠：工作树里的依赖目录常是指向主工作树的符号链接，
+# `node_modules/` 这种「仅匹配目录」的写法不会忽略它。
+node_modules
 lib/
 .DS_Store
 *.tsbuildinfo

@@ -7,6 +7,7 @@
  */
 import { FEATURES, FEATURE_LIST, type FeatureId } from '../../features.js'
 import type { ClientFeatureEntry } from '../feature.js'
+import { fileMenuClientFeature } from './file-menu/index.js'
 import { gitBranchClientFeature } from './git-branch/index.js'
 import { messageQuoteClientFeature } from './message-quote/index.js'
 
@@ -21,6 +22,11 @@ const IMPLEMENTATIONS: Readonly<Record<FeatureId, ClientFeatureEntry>> = {
     id: 'message-quote',
     configKey: FEATURES['message-quote'].configKey,
     feature: messageQuoteClientFeature,
+  },
+  'file-menu': {
+    id: 'file-menu',
+    configKey: FEATURES['file-menu'].configKey,
+    feature: fileMenuClientFeature,
   },
 }
 

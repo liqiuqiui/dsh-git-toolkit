@@ -20,6 +20,8 @@ const ZH = {
   'gitBranch.description': '在会话中显示当前分支，并支持切换与新建分支。',
   'messageQuote.title': '引用消息',
   'messageQuote.description': '选中会话里的文字后浮出引用菜单，把选中片段作为参考材料加入输入框。',
+  'fileMenu.title': '文件右键菜单',
+  'fileMenu.description': '在会话里的文件链接上右键，用系统程序打开、另存为或复制文件内容。',
 } as const satisfies Dict
 
 /** 全部键。 */
@@ -40,6 +42,9 @@ const EN: Readonly<Record<ToolkitKey, string>> = {
   'messageQuote.title': 'Quote message',
   'messageQuote.description':
     'Selecting text in the conversation floats a quote menu that adds the selection to the composer as reference material.',
+  'fileMenu.title': 'File context menu',
+  'fileMenu.description':
+    'Right-click a file link in a session to open it in a system app, save a copy, or copy its contents.',
 }
 
 /** 交给 locale 服务的两个字典，以插件 id 为命名空间。 */

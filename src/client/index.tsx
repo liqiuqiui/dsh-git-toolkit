@@ -85,6 +85,30 @@ export { isQuotedMessageOccurrence, quoteRemovalSpan } from './features/message-
 export { branchCopyText, writeClipboard } from './features/git-branch/clipboard.js'
 
 /**
+ * file-menu 的纯逻辑再导出，供测试直接调用。
+ *
+ * 这几项都是「决定行为但不碰 React」的规则：从 DOM 文本判定路径、读文件并按
+ * UTF-8 解码、挑优先编辑器、以及把失败信封翻成人话。暴露它们就能在 Node 里断言
+ * 「带行号的 `src/a.ts:12` 会被还原成 `src/a.ts`」「正文词句不会被当成路径」
+ * 「同时装了 Cursor 与 VS Code 时提 VS Code」，不必渲染菜单，也无需真的打开文件。
+ *
+ * 「另存为」不在这里：它必须触碰 `window`/`document`，只能靠真实浏览器验证。
+ */
+export {
+  baseNameOf,
+  beginSave,
+  COPY_LIMIT_BYTES,
+  decodeText,
+  isCancelled,
+  isUnavailable,
+  messageKeyOf,
+  messageOf,
+  readFileText,
+} from './features/file-menu/actions.js'
+export { pickEditor } from './features/file-menu/preferred.js'
+export { findMention, looksLikePath, stripLocationSuffix } from './features/file-menu/target.js'
+
+/**
  * 该侧强依赖的 Host services：slot 注册表和 locale 注册表。
  *
  * `configForms` **不**在这里：设置页只是功能开关的一个可选宿主，缺少它的部署

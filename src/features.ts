@@ -51,6 +51,12 @@ export const FEATURES = {
     titleKey: 'messageQuote.title',
     descriptionKey: 'messageQuote.description',
   },
+  'file-menu': {
+    configKey: 'fileMenu',
+    defaultEnabled: true,
+    titleKey: 'fileMenu.title',
+    descriptionKey: 'fileMenu.description',
+  },
 } as const satisfies Record<string, FeatureDescriptor>
 
 /** 功能 id：{@link FEATURES} 的键。 */
