@@ -16,6 +16,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 /** 记录创建的虚拟节点，方便断言渲染结果。 */
 function createElement(type, props, ...children) {
@@ -154,7 +155,9 @@ function mockConfigForms({ namespace = 'dsh-toolkit', value = { gitBranch: true 
   }
 }
 
-const BUNDLE = new URL('../lib/client.js', import.meta.url).pathname
+// 用 fileURLToPath 而不是 URL.pathname：后者在 Windows 上会留下前导斜杠
+// （`/C:/...`），readFileSync 会把它当成当前盘符下的相对路径。
+const BUNDLE = fileURLToPath(new URL('../lib/client.js', import.meta.url))
 
 /**
  * `apply` 在**带设置服务**时注册的总数：各功能的槽位占用者 + 那个开关区块。

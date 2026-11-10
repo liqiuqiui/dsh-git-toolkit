@@ -18,6 +18,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 /** 存根 React：bundle 顶层只需要能解析出 `react`。 */
 const React = {
@@ -35,7 +36,9 @@ const React = {
   useRef: (initial) => ({ current: initial }),
 }
 
-const BUNDLE = new URL('../lib/client.js', import.meta.url).pathname
+// 用 fileURLToPath 而不是 URL.pathname：后者在 Windows 上会留下前导斜杠
+// （`/C:/...`），readFileSync 会把它当成当前盘符下的相对路径。
+const BUNDLE = fileURLToPath(new URL('../lib/client.js', import.meta.url))
 
 /**
  * 在 Node 里执行产物，返回它的 `module.exports`。
